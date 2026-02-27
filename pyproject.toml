@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "agent_lens"
+version = "0.1.0"
+description = "A lightweight, local observability dashboard for AI coding agents"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "AgentLens Contributors" }
+]
+keywords = ["ai", "agents", "observability", "dashboard", "monitoring"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Debuggers",
+    "Topic :: System :: Monitoring",
+]
+dependencies = [
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.29.0",
+    "watchdog>=4.0.0",
+    "psutil>=5.9.0",
+    "pydantic>=2.0.0",
+    "click>=8.1.0",
+    "httpx>=0.27.0",
+    "anyio>=4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.27.0",
+]
+
+[project.scripts]
+agent-lens = "agent_lens.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/example/agent_lens"
+Repository = "https://github.com/example/agent_lens"
+Issues = "https://github.com/example/agent_lens/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agent_lens*"]
+
+[tool.setuptools.package-data]
+agent_lens = ["static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+log_cli = true
+log_cli_level = "INFO"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
