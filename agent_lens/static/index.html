@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentLens — AI Agent Observability</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <span class="logo">&#128269; AgentLens</span>
+      <span class="tagline">Local AI Agent Observability</span>
+    </div>
+    <div class="header-right">
+      <span class="status-indicator" id="status-indicator">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Connecting...</span>
+      </span>
+      <span class="subscriber-count" id="subscriber-count" title="Active SSE subscribers">&#128100; --</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- Sidebar: filters and stats -->
+    <aside class="sidebar">
+      <section class="sidebar-section">
+        <h3 class="sidebar-title">Filters</h3>
+
+        <div class="filter-group">
+          <label for="filter-event-type">Event Type</label>
+          <select id="filter-event-type">
+            <option value="">All Types</option>
+            <option value="file_create">file_create</option>
+            <option value="file_modify">file_modify</option>
+            <option value="file_delete">file_delete</option>
+            <option value="file_read">file_read</option>
+            <option value="shell_command">shell_command</option>
+            <option value="network_call">network_call</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="filter-process">Process Name</label>
+          <input type="text" id="filter-process" placeholder="e.g. aider, python" />
+        </div>
+
+        <div class="filter-group">
+          <label for="filter-path">Path Contains</label>
+          <input type="text" id="filter-path" placeholder="e.g. src/, .py" />
+        </div>
+
+        <div class="filter-group">
+          <label for="filter-search">Search</label>
+          <input type="text" id="filter-search" placeholder="Full-text search..." />
+        </div>
+
+        <div class="filter-actions">
+          <button id="btn-apply-filters" class="btn btn-primary">Apply Filters</button>
+          <button id="btn-clear-filters" class="btn btn-secondary">Clear</button>
+        </div>
+      </section>
+
+      <section class="sidebar-section">
+        <h3 class="sidebar-title">Statistics</h3>
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-item">
+            <span class="stat-label">Total Events</span>
+            <span class="stat-value" id="stat-total">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label badge badge-file_create">file_create</span>
+            <span class="stat-value" id="stat-file_create">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label badge badge-file_modify">file_modify</span>
+            <span class="stat-value" id="stat-file_modify">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label badge badge-file_delete">file_delete</span>
+            <span class="stat-value" id="stat-file_delete">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label badge badge-file_read">file_read</span>
+            <span class="stat-value" id="stat-file_read">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label badge badge-shell_command">shell_command</span>
+            <span class="stat-value" id="stat-shell_command">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label badge badge-network_call">network_call</span>
+            <span class="stat-value" id="stat-network_call">--</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="sidebar-section">
+        <h3 class="sidebar-title">Stream</h3>
+        <div class="stream-controls">
+          <label class="toggle-label">
+            <input type="checkbox" id="toggle-live" checked />
+            <span>Live updates</span>
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="toggle-autoscroll" checked />
+            <span>Auto-scroll</span>
+          </label>
+          <button id="btn-clear-display" class="btn btn-secondary btn-sm">Clear Display</button>
+        </div>
+        <div class="event-count">
+          Showing <span id="display-count">0</span> events
+        </div>
+      </section>
+    </aside>
+
+    <!-- Main content: event timeline -->
+    <main class="main-content">
+      <div class="timeline-header">
+        <h2>Event Timeline</h2>
+        <div class="timeline-actions">
+          <button id="btn-load-history" class="btn btn-secondary btn-sm">Load History</button>
+          <button id="btn-refresh-stats" class="btn btn-secondary btn-sm">&#8635; Stats</button>
+        </div>
+      </div>
+
+      <div class="event-list" id="event-list">
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon">&#128269;</div>
+          <p>No events yet. Start an AI agent and watch the events appear!</p>
+          <p class="empty-hint">Connect via: <code>curl -N http://localhost:8765/api/events/stream</code></p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Detail panel: event details -->
+    <aside class="detail-panel" id="detail-panel">
+      <div class="detail-header">
+        <h3>Event Detail</h3>
+        <button class="btn-close" id="btn-close-detail" title="Close">&times;</button>
+      </div>
+      <div class="detail-content" id="detail-content">
+        <p class="detail-placeholder">Click an event to see details.</p>
+      </div>
+    </aside>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
