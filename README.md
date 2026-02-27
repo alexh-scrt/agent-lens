@@ -1,214 +1,185 @@
-# AgentLens
+# AgentLens 🔍
 
-> A lightweight, local observability dashboard for AI coding agents.
+> See exactly what your AI agents are doing — in real time, on your machine.
 
-AgentLens watches your filesystem and processes in real time, capturing file reads/writes, shell
-commands, and outbound API calls made by autonomous agents like OpenClaw or Aider. Events are
-streamed live to a clean web UI via Server-Sent Events (SSE), giving developers a clear audit
-trail and timeline visualization of exactly what their AI agents are doing on their machines.
+AgentLens is a lightweight, local observability dashboard for AI coding agents. It watches your filesystem and processes in real time, capturing file reads/writes, shell commands, and outbound API calls made by autonomous agents like Aider or OpenClaw. Events stream instantly to a clean web UI via Server-Sent Events, giving you a full audit trail and timeline of every action your agent takes — with zero cloud involvement.
 
 **No cloud. No telemetry. Everything stays local.**
 
 ---
 
-## Features
-
-- **Real-time filesystem event capture** — monitors configured watch paths for file reads, writes,
-  creates, and deletes attributed to known agent processes.
-- **Process and network monitoring** — uses `psutil` to track shell commands spawned by agents and
-  outbound API/network connections in near-real-time.
-- **Live SSE dashboard** — streams events instantly to a local web UI with a color-coded timeline;
-  no polling required.
-- **Persistent audit trail** — all events are stored in a local SQLite database with timestamps,
-  process info, and full paths, queryable via a REST API.
-- **Zero-config CLI** — start monitoring any directory with a single command with optional process
-  name filtering.
-
----
-
-## Requirements
-
-- Python 3.10 or newer
-- pip
-
----
-
-## Installation
-
-### From source (recommended for development)
-
-```bash
-git clone https://github.com/example/agent_lens.git
-cd agent_lens
-pip install -e ".[dev]"
-```
-
-### From PyPI (once published)
-
-```bash
-pip install agent_lens
-```
-
----
-
 ## Quick Start
 
-### Watch a project directory
+**Install:**
+
+```bash
+pip install agent-lens
+```
+
+Or install from source:
+
+```bash
+git clone https://github.com/your-org/agent-lens
+cd agent-lens
+pip install -e .
+```
+
+**Start monitoring:**
 
 ```bash
 agent-lens watch ./my-project
 ```
 
-This will:
-1. Start the AgentLens backend on `http://localhost:8765` by default.
-2. Begin monitoring `./my-project` for filesystem events.
-3. Open (or print the URL to) the live dashboard in your browser.
+Then open your browser at [http://localhost:8000](http://localhost:8000) — the dashboard is live.
 
-### Custom port and multiple paths
+---
+
+## Features
+
+- **Real-time filesystem monitoring** — captures file creates, writes, modifies, and deletes across any watched directory, attributed to known agent processes.
+- **Process & network tracking** — uses `psutil` to detect shell commands spawned by agents and outbound API/network connections as they happen.
+- **Live SSE dashboard** — events stream instantly to a color-coded timeline in your browser; no polling, no refresh.
+- **Persistent audit trail** — every event is stored in a local SQLite database with full timestamps, process info, and file paths, queryable via a REST API.
+- **Zero-config CLI** — start monitoring any directory with a single command; optional flags for port, process filtering, and database path.
+
+---
+
+## Usage Examples
+
+### CLI
 
 ```bash
-agent-lens watch ./my-project ./another-dir --port 9000
-```
+# Watch a single project directory (default port 8000)
+agent-lens watch ./my-project
 
-### Filter by agent process name
+# Watch multiple directories on a custom port
+agent-lens watch ./project ./docs --port 9000
 
-```bash
+# Filter events to specific agent process names
 agent-lens watch ./my-project --process aider --process python
+
+# Persist events to a specific database file
+agent-lens watch ./my-project --db /var/log/agent_lens.db
 ```
 
-### View stored events via REST API
+### REST API
 
-While the server is running:
+Once running, the dashboard exposes a REST API alongside the UI:
 
 ```bash
-# List all events (most recent 100)
-curl http://localhost:8765/api/events
+# List recent events
+curl http://localhost:8000/api/events
 
 # Filter by event type
-curl "http://localhost:8765/api/events?event_type=file_write"
+curl "http://localhost:8000/api/events?event_type=FILE_WRITE&limit=50"
 
-# Filter by path prefix
-curl "http://localhost:8765/api/events?path_prefix=./my-project/src"
+# Get a specific event by ID
+curl http://localhost:8000/api/events/<event-id>
 
-# Limit results
-curl "http://localhost:8765/api/events?limit=50"
+# View aggregate stats
+curl http://localhost:8000/api/stats
 ```
 
-### Live SSE stream
+### Programmatic Usage
 
-Connect to the SSE endpoint to receive events as they happen:
+```python
+from agent_lens.main import create_app
+from agent_lens.store import EventStore
+from agent_lens.event_bus import EventBus
 
-```bash
-curl -N http://localhost:8765/api/events/stream
+store = EventStore(db_path="agent_lens.db")
+store.initialize()
+
+bus = EventBus(store=store)
+app = create_app(bus=bus, store=store)
+```
+
+### SSE Stream
+
+Connect directly to the live event stream from any client:
+
+```javascript
+const stream = new EventSource('http://localhost:8000/api/events/stream');
+stream.onmessage = (e) => {
+  const event = JSON.parse(e.data);
+  console.log(event.event_type, event.path);
+};
 ```
 
 ---
 
-## Dashboard UI
-
-Open `http://localhost:8765` in your browser to access the live dashboard.
-
-The dashboard provides:
-
-- **Event timeline** — a scrolling, color-coded list of all captured events with timestamps.
-- **Filter controls** — filter by event type (file_create, file_modify, file_delete, shell_command,
-  network_call), process name, or path substring.
-- **Search** — full-text search across event paths and metadata.
-- **Event detail panel** — click any event to see its full details including process PID, command
-  line, and file metadata.
-
-### Event type color coding
-
-| Event Type       | Color  | Description                                      |
-|------------------|--------|--------------------------------------------------|
-| `file_create`    | Green  | A new file was created by an agent process       |
-| `file_modify`    | Blue   | An existing file was modified                    |
-| `file_delete`    | Red    | A file was deleted                               |
-| `file_read`      | Gray   | A file was opened for reading                    |
-| `shell_command`  | Yellow | A shell command was spawned                      |
-| `network_call`   | Purple | An outbound network connection was detected      |
-
----
-
-## Architecture
+## Project Structure
 
 ```
-agent_lens/
-├── __init__.py        # Package init, version
-├── main.py            # FastAPI app, SSE endpoint, static files
-├── cli.py             # Click CLI entry point
-├── models.py          # Pydantic models: AgentEvent, EventType
-├── store.py           # SQLite-backed event persistence
-├── event_bus.py       # Async in-process event fan-out bus
-├── watcher.py         # Watchdog filesystem monitor
-├── process_monitor.py # Psutil process + network monitor
-└── static/
-    ├── index.html     # Dashboard SPA
-    ├── app.js         # SSE client + UI logic
-    └── style.css      # Dark theme styles
-```
-
-### Data flow
-
-```
-Filesystem events  ──┐
-                     ├──► EventBus ──► SSE subscribers (browser)
-Process events     ──┤              └──► SQLite store
-                     │
-Network events     ──┘
+agent-lens/
+├── pyproject.toml                  # Project metadata and dependencies
+├── README.md
+│
+├── agent_lens/
+│   ├── __init__.py                 # Package init, version, entry point
+│   ├── cli.py                      # Click CLI: `agent-lens watch`
+│   ├── main.py                     # FastAPI app factory, routes, SSE endpoint
+│   ├── models.py                   # Pydantic models: AgentEvent, EventType, EventFilter
+│   ├── store.py                    # SQLite-backed persistent event store
+│   ├── event_bus.py                # Async event bus (asyncio.Queue fan-out)
+│   ├── watcher.py                  # Watchdog filesystem monitor
+│   ├── process_monitor.py          # Psutil process & network monitor
+│   └── static/
+│       ├── index.html              # Single-page dashboard UI
+│       ├── app.js                  # SSE client, timeline rendering, filters
+│       └── style.css               # Dark theme, color-coded event badges
+│
+└── tests/
+    ├── test_models.py              # Pydantic model validation tests
+    ├── test_store.py               # SQLite store unit tests
+    ├── test_watcher.py             # Filesystem watcher integration tests
+    ├── test_process_monitor.py     # ProcessMonitor unit tests
+    └── test_api.py                 # FastAPI REST and SSE endpoint tests
 ```
 
 ---
 
 ## Configuration
 
-All configuration is passed via CLI flags. There is no config file required.
+All configuration is passed via CLI flags. No config file is required.
 
-| Flag              | Default         | Description                                      |
-|-------------------|-----------------|--------------------------------------------------|
-| `--port`          | `8765`          | Port to serve the dashboard on                   |
-| `--host`          | `127.0.0.1`     | Host to bind the server to                       |
-| `--process`       | *(all)*         | Process name(s) to filter on (repeatable)        |
-| `--db`            | `agent_lens.db` | Path to SQLite database file                     |
-| `--poll-interval` | `1.0`           | Seconds between process monitor polls            |
+| Flag | Default | Description |
+|---|---|---|
+| `paths` | _(required)_ | One or more directories to watch |
+| `--port` | `8000` | Port for the web dashboard |
+| `--host` | `127.0.0.1` | Host to bind the server to |
+| `--process` | _(all)_ | Filter by agent process name (repeatable) |
+| `--db` | `:memory:` | Path to SQLite database file for persistence |
+| `--poll-interval` | `1.0` | Process monitor polling interval in seconds |
+
+**Examples:**
+
+```bash
+# Ephemeral (in-memory) — events lost on exit
+agent-lens watch ./project
+
+# Persistent — events survive restarts
+agent-lens watch ./project --db ~/.agent_lens/events.db
+
+# Bind to all interfaces (e.g., for Docker)
+agent-lens watch ./project --host 0.0.0.0 --port 8080
+```
 
 ---
 
-## Development
-
-### Running tests
+## Running Tests
 
 ```bash
-pytest
-```
-
-### Running tests with coverage
-
-```bash
-pip install pytest-cov
-pytest --cov=agent_lens --cov-report=term-missing
-```
-
-### Running the server in development mode
-
-```bash
-uvicorn agent_lens.main:app --reload --port 8765
+pip install -e ".[dev]"
+pytest tests/ -v
 ```
 
 ---
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](LICENSE) for details.
 
 ---
 
-## Contributing
-
-Contributions are welcome! Please open an issue or pull request on GitHub.
-
-1. Fork the repository.
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Commit your changes: `git commit -am 'Add my feature'`
-4. Push to the branch: `git push origin feature/my-feature`
-5. Open a pull request.
+*Built with [Jitter](https://github.com/jitter-ai) — an AI agent that ships code daily.*
